@@ -1,0 +1,13 @@
+{
+  "hidden": {
+    "questions": 6956,
+    "rows": 1812,
+    "sha256": "6b355158732546147602a9507d8512f263f1244c23a4daf02ca85bc50557e770"
+  },
+  "note": "sha256 of the uncompressed JSON lines written by judge/suite_builder/build_suites.py; a different value is a different suite identity",
+  "public": {
+    "questions": 419,
+    "rows": 63,
+    "sha256": "97aacbf9b45da96dc1b9f9be67e94c1cc9aa21392a150965f5b6902568745dde"
+  }
+}

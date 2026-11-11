@@ -1,0 +1,139 @@
+{
+  "round": 1,
+  "commit": "3fc64ae535eeb5f93ab31582251cec412fda560d",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "max",
+  "hours": 6.0,
+  "wall_seconds": 22505,
+  "launcher_exit": 0,
+  "valid_scores": [
+    42.5937,
+    84.1859,
+    90.2851,
+    92.6166,
+    93.1542,
+    93.3411,
+    94.5029,
+    94.5919,
+    94.4152,
+    94.3913,
+    94.8752,
+    97.3544,
+    98.1246,
+    98.3487,
+    97.907,
+    98.3487
+  ],
+  "best": 98.3487,
+  "submissions": [
+    {
+      "valid": true,
+      "score": 42.5937,
+      "judge_seconds": 799.8044111100025,
+      "summary": "valid; score 42.59"
+    },
+    {
+      "valid": true,
+      "score": 84.1859,
+      "judge_seconds": 763.6580827981234,
+      "summary": "valid; score 84.19"
+    },
+    {
+      "valid": true,
+      "score": 90.2851,
+      "judge_seconds": 761.9299399051815,
+      "summary": "valid; score 90.29"
+    },
+    {
+      "valid": true,
+      "score": 92.6166,
+      "judge_seconds": 766.2389912051149,
+      "summary": "valid; score 92.62"
+    },
+    {
+      "valid": false,
+      "score": 0.0,
+      "judge_seconds": 4.680497727356851,
+      "summary": "invalid: submitted weights match the released Fast KVzip gates"
+    },
+    {
+      "valid": false,
+      "score": 0.0,
+      "judge_seconds": 4.330669095739722,
+      "summary": "invalid: submitted weights match the released Fast KVzip gates"
+    },
+    {
+      "valid": true,
+      "score": 93.1542,
+      "judge_seconds": 768.8674956918694,
+      "summary": "valid; score 93.15"
+    },
+    {
+      "valid": true,
+      "score": 93.3411,
+      "judge_seconds": 765.8562687481754,
+      "summary": "valid; score 93.34"
+    },
+    {
+      "valid": true,
+      "score": 94.5029,
+      "judge_seconds": 781.6333688180894,
+      "summary": "valid; score 94.50"
+    },
+    {
+      "valid": true,
+      "score": 94.5919,
+      "judge_seconds": 784.3810665332712,
+      "summary": "valid; score 94.59"
+    },
+    {
+      "valid": true,
+      "score": 94.4152,
+      "judge_seconds": 784.566895802971,
+      "summary": "valid; score 94.42"
+    },
+    {
+      "valid": true,
+      "score": 94.3913,
+      "judge_seconds": 798.7250864710659,
+      "summary": "valid; score 94.39"
+    },
+    {
+      "valid": true,
+      "score": 94.8752,
+      "judge_seconds": 787.2162869628519,
+      "summary": "valid; score 94.88"
+    },
+    {
+      "valid": true,
+      "score": 97.3544,
+      "judge_seconds": 778.6174796517007,
+      "summary": "valid; score 97.35"
+    },
+    {
+      "valid": true,
+      "score": 98.1246,
+      "judge_seconds": 778.7728406819515,
+      "summary": "valid; score 98.12"
+    },
+    {
+      "valid": true,
+      "score": 98.3487,
+      "judge_seconds": 784.0063712438568,
+      "summary": "valid; score 98.35"
+    },
+    {
+      "valid": true,
+      "score": 97.907,
+      "judge_seconds": 779.698119990062,
+      "summary": "valid; score 97.91"
+    },
+    {
+      "valid": true,
+      "score": 98.3487,
+      "judge_seconds": 783.8094012821093,
+      "summary": "valid; score 98.35"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "scripts/infrathon/tasks.json": {
+    "tasks": {
+      "kvzip-kv-scoring-qwen3-8b-h100-v2-scratch": {
+        "release": "r1",
+        "hardware": {
+          "h100-94gb-400w": "untested",
+          "h100-80gb-700w": "qualified"
+        },
+        "note": "eight GPUs: Work 1 + Judge 7; built from source"
+      }
+    }
+  },
+  "sforge/harness/resource_profiles.json": {
+    "tasks": {
+      "kvzip_kv_scoring_qwen3_8b_h100_scratch_v2": {
+        "deployment": "kvzip-kv-scoring",
+        "work": {
+          "cpu": 8,
+          "memory": "32Gi",
+          "gpu": 1
+        },
+        "judge": {
+          "cpu": 56,
+          "memory": "88Gi",
+          "gpu": 7
+        },
+        "review": {
+          "cpu": 2,
+          "memory": "4Gi",
+          "gpu": 0
+        }
+      }
+    }
+  },
+  "tests/sforge/harness/test_latest_task_store_integration.py": {
+    "EXPECTED_REGISTRATIONS": {
+      "kvzip-kv-scoring-qwen3-8b-h100-v2-scratch": "kvzip_kv_scoring_qwen3_8b_h100_scratch_v2"
+    }
+  }
+}

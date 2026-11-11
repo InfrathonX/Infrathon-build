@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_directory": "kvzip-kv-scoring-qwen3-8b-h100-v2-scratch",
+  "note": "Every input is public and pinned; nothing comes from the Infrathon dataset. The public and hidden suites are generated from these by judge/suite_builder/build_suites.py (scripts/build_suites.sh) and verified against judge/suite_manifest.json; the hidden suite is never published and enters only the host-built Judge holdout layer.",
+  "assets": [
+    {
+      "path": "public/models/qwen3-8b/",
+      "sha256": "e47b9aca03bbdb25886318a0f1bea76e13303f2971c21ecb8e0ffe69029172bb",
+      "size": 16397461266,
+      "files": 15,
+      "consumer": "work+judge",
+      "description": "frozen model (mounted read-only into Work and Judge; KVZIP_MODEL_DIR)",
+      "source": {"kind": "hf", "repo_id": "Qwen/Qwen3-8B", "repo_type": "model", "revision": "b968826d9c46dd6066d109eabc6255188de91218", "layout": "flat"}
+    },
+    {
+      "path": "public/fast-kvzip/",
+      "sha256": "b3e0e48c41e4760090bb5deaa18c8a73b6673acdfb410fd8ef343fdb37bf3cd8",
+      "size": 189317516,
+      "files": 1,
+      "consumer": "judge",
+      "description": "released Fast KVzip gate for Qwen3-8B: the weights check's reference and the Fast KVzip baseline (Judge holdout layer only)",
+      "source": {"kind": "hf", "repo_id": "Jang-Hyun/Fast-KVzip", "repo_type": "model", "revision": "67ce1265f510a946bf22486a30269f99066b3cbb", "allow_patterns": ["qwen3-8b/q4_dim16_sink16.pt"], "layout": "flat"}
+    },
+    {
+      "path": "public/hf/datasets--rajpurkar--squad/",
+      "sha256": "513851a1dafd3e594757df0f841044e01f83c2e224e1cd2b2308d9178fb72f56",
+      "size": 16278203,
+      "files": 2,
+      "consumer": "suite builder",
+      "description": "SQuAD validation (public rows) and train (hidden rows)",
+      "source": {"kind": "hf", "repo_id": "rajpurkar/squad", "repo_type": "dataset", "revision": "7b6d24c440a36b6815f21b70d25016731768db1f", "allow_patterns": ["plain_text/*"]}
+    },
+    {
+      "path": "public/hf/datasets--openai--gsm8k/",
+      "sha256": "cdaa2cdab9ea55c721d2654fb694e854c8759e0231027b6da4ea8ce6f06b5ef6",
+      "size": 2725633,
+      "files": 2,
+      "consumer": "suite builder",
+      "description": "GSM8K main train and test",
+      "source": {"kind": "hf", "repo_id": "openai/gsm8k", "repo_type": "dataset", "revision": "740312add88f781978c0658806c59bc2815b9866", "allow_patterns": ["main/*"]}
+    },
+    {
+      "path": "public/hf/datasets--Jang-Hyun--SCBench-preprocessed/",
+      "sha256": "8dbe902b768db00653b6fb7952f974a91aa1e3824c70cf708537acd473d767ff",
+      "size": 9315230,
+      "files": 6,
+      "consumer": "suite builder",
+      "description": "SCBench as preprocessed by KVzip (the six files the hidden suite uses)",
+      "source": {"kind": "hf", "repo_id": "Jang-Hyun/SCBench-preprocessed", "repo_type": "dataset", "revision": "a079be919d3131822c202180ffd4dc322968de45", "allow_patterns": ["scbench_kv_short.parquet", "scbench_prefix_suffix_short.parquet", "scbench_repoqa_short.parquet", "scbench_mf_short.parquet", "scbench_many_shot.parquet", "scbench_summary_short.parquet"]}
+    },
+    {
+      "path": "public/hf/datasets--simonjegou--ruler/",
+      "sha256": "3bba7fc3189fc9c299b7902113a374f8bced7f8398d5f191e51edb32d257f277",
+      "size": 256996221,
+      "files": 2,
+      "consumer": "suite builder",
+      "description": "RULER test, 8k and 16k",
+      "source": {"kind": "hf", "repo_id": "simonjegou/ruler", "repo_type": "dataset", "revision": "24adceac8a0e6532936e8d721cd9e9084d2e4686", "allow_patterns": ["8192/*", "16384/*"]}
+    },
+    {
+      "path": "public/kvzip/",
+      "sha256": "9d1dd004eadebbab7e2cf76aabc20944537cad17afdb8157e4e2f7bff9bd3191",
+      "size": 2916474,
+      "files": 107,
+      "consumer": "suite builder",
+      "description": "KVzip repository (the 49 Paul Graham essays of its needle generator)",
+      "source": {"kind": "git", "url": "https://github.com/snu-mllab/KVzip.git", "commit": "5d8472975d286e3da6b52178af39d18904330c0d"}
+    }
+  ]
+}

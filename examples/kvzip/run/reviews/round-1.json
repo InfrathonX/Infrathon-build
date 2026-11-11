@@ -1,0 +1,90 @@
+{
+  "decision": "retrial",
+  "why": "The task works and the trial's best submission (98.35, scorer v020) is a legitimate, query-agnostic scorer of exactly the kind the expert wanted to measure: Fast KVzip-style gates the agent trained itself on its own reconstruction-attention targets, plus context-adaptive head budgets, probe features and learned generic-query templates. It used no benchmark data, no released gates and no token identity, and the integrity review passed it. But the trial exposed seven task problems, all now fixed in 3836737 and 4894250. (1) trial_cmd could not start from a fresh clone. (2) A Pearson-based weights check falsely rejected two honest submissions; one of them is valid and scores 92.99 under the fixed check. (3) The same check never compared tensors whose width is not a multiple of 4096. (4) The Work image's runtime named the three hidden-only workloads and their metrics, and the agent built training data to match them. (5-7) Three brief statements were wrong or missing: second submissions are refused, not queued; the budget was hard-coded at 24 h in a 6 h run; saved versions have a 1 GiB quota. Each fix is verified: fresh-clone trials ran end to end, the trial's archives were re-scanned and re-judged, the Work image was scanned, and check_cmd passed from a clean clone with identical baseline scores. What only another trial can show is how agents behave and score once the hidden workload names are gone and the deadline and submission rules are stated correctly. That retrial also tells the expert how much of this round's near-saturated 98.35 came from the leak. The expert should separately decide whether the uncapped metric leaves enough headroom above Fast KVzip; I recorded that question in the report and did not change the metric.",
+  "findings": [
+    {
+      "kind": "infrastructure",
+      "severity": "blocking",
+      "what": "trial_cmd from a fresh clone exited after 1 s. The trial runner required a per-checkout image build record (outputs/<task>/build/image-manifest.json), and only the checkout where check_cmd ran had one.",
+      "evidence": "First attempt, /work/clean/trial-1-1108-114418: launcher.log line 'ERROR: no image build record; run scripts/build_images.sh' (wall_seconds 1, launcher_exit 1). The tool then re-ran the trial inside the check's clone.",
+      "fixed": "3836737: run_fixed_budget.sh builds the images (idempotent, about 10 s with a warm Docker cache) when the record is missing or stale. Verified by two 2-minute trials from fresh clones (smoke-r1, smoke-r1b): each built, ran, snapshotted, judged and wrote completion.json."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "major",
+      "what": "False positive in the released-gate weights check rejected two honest submissions. Their only 4096-aligned tensor was a 3x4096 mean of Qwen3 attention inputs (layers 8/17/26), used for feature centering. Qwen3's massive-activation coordinates (3828, 368, 445) carry about 80% of that vector's energy and about 75% of many released layer-7 rows', so Pearson r reached 0.92 on 90 released rows. The agent lost two submissions and a line of work, and never found the cause.",
+      "evidence": "submissions/agent-5 and agent-6: reason 'submitted weights match the released Fast KVzip gates'; private weights_scan matched_released_rows 90, max_row_correlation 0.9229. Transcript L133882 ('These parameters were trained here'), L163121. Re-judged with the fix (run rejudge-trial1-agent5): valid, 92.9931, all 13 checks pass; the agent's best at that time was 92.62.",
+      "fixed": "3836737: rank (Spearman) correlation instead of Pearson, plus at least 64 distinct matching candidate rows. Regression test uses a fixture of real Qwen3 mean activations (the old rule matched 84 released rows). All 18 trial archives pass (max 0.47); Qwen3's own q/k/v/MLP/embedding rows max 0.52; all 15 disguised-copy variants still caught; planted released_gates_fp8 still rejected by the real Judge."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "major",
+      "what": "Blind spots in the weights check, found while fixing the false positive. Tensors whose element count or width is not a multiple of 4096 were never compared. The agent's 4098-wide gate layers were not scanned at all, so a released gate padded with two input columns would have passed. Raw fp8 bytes stored as uint8, two's-complement packed int4 and NaN-poisoned rows also escaped.",
+      "evidence": "Private weights_scan of agent-4 (gates.pt with fc1.weight [128, 4098], adaptive.pt [12289, 288]): max_row_correlation 0.0, i.e. no row compared.",
+      "fixed": "3836737: flat rows aligned at both ends, first and last 4096 values of wider rows and columns, int4 in both encodings, raw fp8 (e4m3/e5m2), 16-bit integers read as fp16/bf16, non-finite values counted as 0. Tests cover padded, int4 two's complement and NaN-poisoned copies."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "major",
+      "what": "The Work image revealed the hidden suite's extra task types. The read-only runtime protocol.py listed scbench_repoqa, scbench_many_shot and scbench_summary with their metrics and token limits; metrics.py held their metrics; and rouge/tree-sitter were installed. The brief deliberately names no hidden workloads. The agent read them and built matching synthetic training families (summaries, few-shot labels, function quotation).",
+      "evidence": "Transcript L873, L879-880 (protocol.py), L309601-309693 (metrics), L125387 and L98011 (matching families).",
+      "fixed": "4894250: hidden-only workloads and metrics moved to images/judge/kvzip_judge/hidden_workloads.py, registered by the Judge (also in each shard); rouge, nltk and tree-sitter installed only in the Judge image; validate_layout.py rejects these terms in the Work build context. A scan of the built Work image finds none. KNorm and Fast KVzip scores are bit-identical in check_cmd from a clean clone."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "minor",
+      "what": "The brief said a submission made while another is being judged waits for it. The server actually refuses it with HTTP 409 'an agent submission is already queued or running'.",
+      "evidence": "Transcript L8572-8573; the agent noted 'despite task text queue, actual HTTP409' (L125361); about 2 minutes lost.",
+      "fixed": "4894250: the brief states that only one submission can be in flight and a second is refused."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "minor",
+      "what": "The brief hard-coded a 24-hour budget. The run had 6 hours and the agent had no way to know its deadline; it was cut off while testing its last version (v022).",
+      "evidence": "Brief line 22 ('Your budget is 24 hours'); run_agent.log timeout=21600s; transcript L2151919.",
+      "fixed": "4894250: the Work container gets KVZIP_DEADLINE_UNIX and KVZIP_TIME_BUDGET_SECONDS (from the launcher's budget); the brief points to them and says 24 hours applies to a benchmark run. Verified inside a Work container (budget=120, deadline 113 s ahead at first exec)."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "minor",
+      "what": "Two undocumented size limits. sforge-save-version hit the framework's 1 GiB per-run checkpoint quota after about 16 saves of a 60-113 MB tree. The brief's 'keep old versions if you like' inflated every archive (all versions are submitted and scanned); archives reached 113 MB of the 128 MiB limit.",
+      "evidence": "Transcript L681947 and L1066271: 'ERROR: checkpoint storage quota exceeded (HTTP 429)'; sforge/harness/judge_server.py CHECKPOINT_MAX_BYTES_PER_RUN = 1 GiB (source 'checkpoint' only); archive sizes up to 113446469 bytes.",
+      "fixed": "3836737 and 4894250: the brief says every scorers/ version is submitted, scanned and counted toward the archive limit, and that saved versions share a 1 GiB per-run quota while automatic submission saves still work. The quota itself is the framework's and is unchanged."
+    },
+    {
+      "kind": "observation",
+      "severity": "major",
+      "what": "The score nearly saturates. Fast KVzip's level (89.25) was passed at 33 minutes (agent-3, 90.29). The agent then climbed steadily to 98.35 at 5.2 h (ratios 92.8/100.8/101.5; redundancy group 101.9). Only r = 0.1 has headroom left (about 2.4 score points), and late candidates differ by 0.2-0.5. This is not the 'reached the baseline at once, then stalled' pattern: the score kept improving and separating versions for hours. But a 24-hour run by a strong agent will likely end near 99-100.",
+      "evidence": "SUMMARY.json valid_scores; submissions agent-3 (33 min), agent-14 (250 min, 97.35), agent-16 (310 min, 98.35).",
+      "fixed": ""
+    },
+    {
+      "kind": "observation",
+      "severity": "minor",
+      "what": "The best submission is what the expert hoped to measure. Its parts: per-layer MLP gates on hidden states, trained by the agent on its own KVzip-style reconstruction attention (frozen model replaying WikiText-2 and generated contexts); ridge head-budget corrections from pooled hidden states; sampled-query and value-norm probe features; and 128 learned generic-query centroids per head attended against the keys. It uses 15.6% of prefill time and a 2.1 GiB peak. The transcript shows no benchmark data, no released gates or KVzip code, no token identity, no caching and no public-suite hyperparameter selection. The integrity review passed all 17 submissions (confidence 0.97-0.99).",
+      "evidence": "submissions/agent-16/submission.tar.gz (scorers/scorer_v020/scorer.py, notes.md, train/); integrity_review/verdict.json; transcript download list (only Salesforce/wikitext wikitext-2-raw-v1 train).",
+      "fixed": ""
+    },
+    {
+      "kind": "observation",
+      "severity": "minor",
+      "what": "The public suite is a weak diagnostic for strong scorers. Both public ruler_qa rows have full-cache accuracy 0 under RULER's string match, so they are excluded from the public score. Public Math.Find full-cache accuracy is low (0.17-0.42). The quick tier sits near 99-100 for good scorers. The selection follows the definition's section 3, so I left it unchanged and noted it for the expert.",
+      "evidence": "Transcript L2166, L7882, L344785, L881907.",
+      "fixed": ""
+    },
+    {
+      "kind": "observation",
+      "severity": "minor",
+      "what": "Judge time and determinism are as designed. Each submission took 762-800 s in the Judge plus 24-70 s of integrity review; 17 submissions fit in 6 h. The final evaluation of v020 reproduced 98.3487 exactly.",
+      "evidence": "SUMMARY.json judge_seconds; submissions/manual-1/report.json.",
+      "fixed": ""
+    },
+    {
+      "kind": "agent_limit",
+      "severity": "minor",
+      "what": "The agent declared itself finished at about 1h17m and continued only because the stop hook sent it back. It did not track its budget, made two slips in its own training data (synthetic math under the QA instruction; validation answers capped at 64 tokens), and never diagnosed the weights rejection.",
+      "evidence": "Transcript L171043, L172624-172625, L112903, L335397, L163121.",
+      "fixed": ""
+    }
+  ]
+}

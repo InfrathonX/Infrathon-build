@@ -1,0 +1,69 @@
+{
+  "decision": "retrial",
+  "why": "The task ran as designed: 21 submissions, Judge runs of 13-14 minutes, deterministic results, and a best submission (94.82, scorer v018) that is a legitimate, query-agnostic scorer of the kind the expert wanted. It uses per-layer gates trained by the agent on its own KVzip-style reconstruction targets and full-cache answers, over Gutenberg, WikiText-2, Nemotron and synthetic data, plus received-attention features from a streaming Triton kernel. Without the hidden workload names that leaked in round 1, the run ended about 5.6 points above Fast KVzip and plateaued at 93-95, with headroom left at r = 0.1. The trial did expose one major task problem. An undocumented outside memory cross-check (process footprint at most 8 + 2 GiB) rejected three honest submissions under a message about the allocation peak, although their peak allocation was 2.5-3.5 GiB; the public tests could not reproduce it, and the agent lost three Judge slots chasing it. Re-judged with the fix, one of them is valid at 94.85, above the run's best. Commit df5cadc fixes it with three documented limits that the public tests share: the stated allocation rule, a 16 GiB cap on PyTorch's cache, and a 19 GiB whole-process limit. It also fixes three smaller problems: invalid results no longer return quality numbers; the 'public tests never produce a score' wording, which contradicted the runner and the framework's version-capture rule, is corrected; and the brief and integrity policy now forbid training on the benchmark's own source data. The memory fix is verified mechanically: the trial archive was re-judged and planted cases confirm both rejections. The new training-data rule and the reworded brief change what the agent is told and what the integrity review enforces. Only another trial can show that agents follow them and that the review applies the rule without rejecting honest training data, so I recommend one more round.",
+  "findings": [
+    {
+      "kind": "task_problem",
+      "severity": "major",
+      "what": "The memory check rejected three honest submissions. The brief's rule is peak allocation (torch.cuda.max_memory_allocated) at most 8 GiB, but the Judge also compared the scorer process's NVML footprint with an undocumented 8 + 2 GiB and reported 'the scorer's peak device memory allocation exceeds 8 GiB'. agent-12/13/14 had peak allocations of 2.5-3.5 GiB; PyTorch's caching allocator, fragmenting across contexts of very different lengths, held 12.0-17.3 GiB. The public tests (no such check) reported 2.5 GiB and PASS, so the agent could not reproduce the failure. It spent three Judge slots and about an hour bounding temporaries, plus a hedge submission without its attention branch (agent-15, 91.17).",
+      "evidence": "Private artifacts agent-12/13/14: rejection detail peak_bytes=3751862784/2694637056/2694451200 vs nvml_worker_bytes=12924747776/18568183808/15344861184. Transcript: 'Version 14 failed the hidden memory check, despite passing the public suite'; 'Version 16 still exceeded the Judge's memory limit'. Re-judged with the fix (run rejudge-trial2-agent13): valid, 94.8461 (above the run's best 94.8211); peak 2.51 GiB, PyTorch reserved 15.34 GiB, process 16.0 GiB.",
+      "fixed": "df5cadc: the verdict follows the stated rule (allocation at most 8 GiB). PyTorch's cache in the scorer process is capped at 16 GiB with set_per_process_memory_fraction, set before the submission is imported; the allocator frees cached blocks first, and the public tests behave the same and print reserved memory. A separate, documented 19 GiB whole-process limit measured from outside catches memory allocated outside PyTorch and fails fast. Each limit has its own fixed message. New planted outside_pytorch_memory (20 GiB through cuMemAlloc) is rejected by the process limit; memory_hog (9 GiB) by the allocation rule. The brief's check 9 states all three limits; a unit test ties them to the brief."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "minor",
+      "what": "Invalid submissions still returned ratio and group scores when they were rejected after the full suite ran (e.g. the memory rejections). That gives quality feedback for rule-breaking configurations, and the agent used it.",
+      "evidence": "submissions/agent-12..14/report.json carried ratio_scores and group_scores; transcript T976000 (per the transcript review).",
+      "fixed": "df5cadc: build_result emits ratio and group scores only for valid results; overhead ratios stay (they explain cost rejections). Unit test added."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "minor",
+      "what": "The brief said the public tests 'never produce a score', but the runner prints 'PUBLIC SCORE', and the framework's instructions ask the agent to save a version before any score-producing public test. The agent never ran sforge-save-version.",
+      "evidence": "AGENT_TASK.md line 219 at 4894250; agent_query '(diagnostics only; they never produce a score)'; transcript T42, T291, T2621; 0 calls to sforge-save-version.",
+      "fixed": "df5cadc: the brief, agent_query and README call it a diagnostic public score that is not the run's score."
+    },
+    {
+      "kind": "task_problem",
+      "severity": "minor",
+      "what": "Loophole, not used. Nothing forbade training, tuning or validating on the datasets the hidden suite draws rows from (SQuAD train, GSM8K train/test, the RULER and SCBench releases, the Paul Graham essays), all downloadable from the Work container. The integrity policy even allowed training on downloaded public data and the public tests. Such contamination is invisible to any mechanical check.",
+      "evidence": "llm_judge/POLICY.md lines 42-45 and 66-68 at 4894250; the brief only forbade 'answer tables or position tables built from benchmark data'. Neither trial agent did it (round 2 data: Gutenberg, WikiText-2, Nemotron samples, Python sources, synthetic tasks).",
+      "fixed": "df5cadc: new brief rule 'No training on the benchmark's own data' (no training, tuning or validation on those sources in any split, including public rows; generated tasks of the same kinds and other text are fine; the public suite is for checking and selecting). The integrity policy rejects it and allows other corpora and synthetic tasks. Recorded as decision 40 for the expert."
+    },
+    {
+      "kind": "observation",
+      "severity": "minor",
+      "what": "The best submission (agent-16, v018, 94.82) is legitimate and measures what the expert intended. It uses per-layer MLP gates on attention inputs with learned context-mean, document, local-pool, position and value-norm terms, plus received-attention statistics from 16 sampled context queries per head (streaming Triton kernel). Training was KVzip-style reconstruction attention, then hard-top-k distillation against the model's full-cache answers. It costs 4.9% of prefill and a 0.33 GiB peak. All 22 integrity verdicts PASS (0.97-0.99).",
+      "evidence": "submissions/agent-16/submission.tar.gz (scorers/scorer_v018/scorer.py, train/prepare_corpus.py: Gutenberg, WikiText-2, nvidia Nemotron shards); integrity_review/verdict.json.",
+      "fixed": ""
+    },
+    {
+      "kind": "observation",
+      "severity": "minor",
+      "what": "Score level and saturation after closing round 1's leak. The best was 94.82 (round 1: 98.35), and the run plateaued at 93.1-94.8 for its last 2.5 hours. Ratios 0.2 and 0.3 sit near 99; r = 0.1 (about 86) decides the score. That is consistent with the leak having been worth about 3.5 points, inferred from two single runs. Headroom remains at r = 0.1; the expert may still want a harder setting (options in the report).",
+      "evidence": "SUMMARY.json valid_scores; agent-16 ratios 0.1/0.2/0.3 in its report.json.",
+      "fixed": ""
+    },
+    {
+      "kind": "observation",
+      "severity": "minor",
+      "what": "The public suite is a weak diagnostic for strong scorers. Public ruler_qa full-cache accuracy is 0 (excluded), public Math.Find full-cache accuracy is low, and the quick tier reads 98-99 while the Judge gives 90-93. It follows the definition's section 3, so I left it unchanged.",
+      "evidence": "Transcript T2613, T223931, T346803 (per the transcript review).",
+      "fixed": ""
+    },
+    {
+      "kind": "observation",
+      "severity": "minor",
+      "what": "Judge time, determinism and the round-1 fixes held. Judge runs took 763-818 s; the final evaluation reproduced 94.8211; the deadline variable was used correctly; there were no 409/429 errors; archives stayed under 97 MB.",
+      "evidence": "SUMMARY.json judge_seconds; manual-1/report.json; transcript T351-398, T1514067.",
+      "fixed": ""
+    },
+    {
+      "kind": "agent_limit",
+      "severity": "minor",
+      "what": "The agent ran 32-45 GiB training jobs on the Work GPU next to its public tests, which ran out of memory twice (about 10 minutes). It never saved a version, misdiagnosed the memory rejection as a peak on some hidden context, and its last five candidates did not beat agent-16.",
+      "evidence": "Transcript T158673, T168695, T987910 (per the transcript review).",
+      "fixed": ""
+    }
+  ]
+}

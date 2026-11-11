@@ -1,0 +1,10 @@
+# Judge holdout layer: the public Judge plus the hidden suite, its frozen identity and
+# the released Fast KVzip gate.  Built only on the host that runs the task, never published.
+ARG JUDGE_PUBLIC_IMAGE=kvzip_kv_scoring.judge-public.kvzip_kv_scoring_qwen3_8b_h100_scratch_v2:local
+FROM ${JUDGE_PUBLIC_IMAGE}
+COPY --from=private hidden_suite.jsonl.gz /opt/kvzip_judge/private/hidden_suite.jsonl.gz
+COPY --from=private suite_manifest.json /opt/kvzip_judge/private/suite_manifest.json
+COPY --from=private q4_dim16_sink16.pt /opt/kvzip_judge/private/released_gates/q4_dim16_sink16.pt
+RUN chown -R root:root /opt/kvzip_judge/private \
+ && find /opt/kvzip_judge/private -type d -exec chmod 0700 {} + \
+ && find /opt/kvzip_judge/private -type f -exec chmod 0600 {} +

@@ -1,0 +1,29 @@
+[project]
+name = "infrathon-build"
+version = "1.0.0"
+description = "Turn an expert's task definition into a runnable Infrathon task, then trial it with an agent."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "PolyForm-Noncommercial-1.0.0" }
+authors = [{ name = "The Infrathon authors" }]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/InfrathonX/Infrathon-build"
+Repository = "https://github.com/InfrathonX/Infrathon-build"
+
+[project.scripts]
+infrathon-build = "infrathon_build.__main__:main"
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["infrathon_build"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

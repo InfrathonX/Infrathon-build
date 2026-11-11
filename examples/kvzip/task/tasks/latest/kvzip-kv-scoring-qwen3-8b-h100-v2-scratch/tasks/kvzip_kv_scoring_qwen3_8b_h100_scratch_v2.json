@@ -1,0 +1,87 @@
+{
+  "task_id": "kvzip_kv_scoring_qwen3_8b_h100_scratch_v2",
+  "name": "KVzip KV Scoring: query-agnostic KV importance for Qwen3-8B (scratch) v2",
+  "category": "GPU / Machine Learning Systems",
+  "base_image": "pytorch280_cu129",
+  "platform": "linux/amd64",
+  "internet": true,
+  "cwd": "/app/workdir/kvzip_lab",
+  "submit_paths": [
+    "scorers",
+    "FINAL_VERSION",
+    "notes.md"
+  ],
+  "submit_exclude": [
+    ".git/",
+    ".codex/",
+    ".claude/",
+    "auth.json",
+    "*.auth.json",
+    "__pycache__/",
+    "*.pyc",
+    ".ipynb_checkpoints/"
+  ],
+  "candidate_identity_exclude": [
+    "notes.md"
+  ],
+  "version_enumeration": {
+    "root": "scorers",
+    "directory_pattern": "scorer_v([0-9]{3})",
+    "selector_file": "FINAL_VERSION"
+  },
+  "disable_auto_eval": true,
+  "scoring": {
+    "score_key": "score",
+    "direction": "maximize",
+    "selection": "valid_then_score"
+  },
+  "work": {
+    "image_tag": "local",
+    "specs_dir": "/app/workdir/kvzip_lab",
+    "cpu_limit": 8,
+    "mem_limit": "32g",
+    "agent_query": "Read AGENT_TASK.md in /app/workdir/kvzip_lab. Write a cheap, query-agnostic KV importance scorer for the frozen Qwen3-8B in scorers/scorer_vNNN/scorer.py (class Scorer; FINAL_VERSION selects the evaluated version): after a context is prefilled it gives every (layer, KV head, context position) entry one score, and the evaluator keeps the globally highest 10%, 20% and 30% and measures how much answer quality survives against the full cache. Run the public tests with /workspace/public_tests/run_public_tests.sh (diagnostics: the public score they print is not the run's score). Use sforge-submit to have the Judge score your submitted tree (scorers/, FINAL_VERSION, notes.md) on the hidden suite: at most one submission every 5 minutes; sforge-submit waits for the result, about 15 minutes after the integrity review. The run's result is its best valid score within the time budget."
+  },
+  "judge": {
+    "image_tag": "local",
+    "eval_cmd": "python3 -I -B /opt/kvzip_judge/verify_kvzip.py --app-dir /app --log-dir /logs/verifier",
+    "eval_timeout": 3600,
+    "parser": "structured_json",
+    "private_artifact_path": "/logs/verifier/kvzip_judge_private.json",
+    "score_direction": "maximize",
+    "selection": "valid_then_score",
+    "cpu_limit": 56,
+    "mem_limit": "88g"
+  },
+  "portable": {
+    "schema_version": 1,
+    "execution_profiles": {
+      "judge-7x-cuda-sm80-64g": {
+        "vendor": "nvidia",
+        "count": 7,
+        "min_memory_bytes": 68719476736,
+        "min_compute_capability": "8.0",
+        "features": [
+          "bf16",
+          "cuda",
+          "triton",
+          "cuda-vmm-fd-export"
+        ],
+        "notes": "Judge: one evaluation process per GPU plus the submitted scorer in its own process on the same GPU. Work uses one GPU of the same class. Qualified only on 80 GB-class H100s; the memory floor is the measured per-GPU Judge peak with margin (task README)."
+      }
+    },
+    "metrics": {
+      "primary": {
+        "comparability": "same_measurement_profile",
+        "baseline_policy": "paired_per_candidate",
+        "direction": "maximize",
+        "unit": "dimensionless",
+        "notes": "100 x mean over r in {0.1, 0.2, 0.3} of the mean over three groups of the mean relative accuracy (compressed / full cache, decoded in the same evaluation)."
+      }
+    },
+    "defaults": {
+      "execution_profile_id": "judge-7x-cuda-sm80-64g",
+      "metric_id": "primary"
+    }
+  }
+}

@@ -1,0 +1,3 @@
+[submodule "infrathon"]
+	path = infrathon
+	url = https://github.com/InfrathonX/Infrathon

@@ -1,0 +1,11 @@
+{
+  "comment": "The example tasks a builder reads. One of each shape: a scratch kernel with the full portable layer, a scratch kernel with the newest public/private suite split, an LLM inference engine on Qwen3-8B, and two training systems with a separate Judge.",
+  "tasks": {
+    "flash-kmeans-paper-h100-v7-scratch": "launch/flash-kmeans",
+    "standalone-paged-gqa-decode-bf16-h100-v2-scratch": "launch/standalone-paged-gqa-v2",
+    "eagle3-spec-decode-engine-qwen3-8b-h100-v1-seed": "launch/eagle3-spec-decode",
+    "miles-qwen3-alfworld-agentic-rl-2xh100-v1-seed": "launch/miles-alfworld",
+    "miles-qwen3-opcd-2xh100-v3-seed": "launch/miles-opcd"
+  },
+  "extra_paths": ["scripts/miles_common", "scripts/miles_alfworld", "scripts/miles_opcd", "scripts/miles_base_images"]
+}

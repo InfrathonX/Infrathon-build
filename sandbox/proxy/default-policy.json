@@ -1,0 +1,4 @@
+{
+  "comment": "Network policy: case-insensitive regexes the gateway refuses, matched against the hostname of every connection and against host and path on intercepted hosts. Private addresses are always refused. Pass another file with init --network-policy.",
+  "patterns": []
+}
